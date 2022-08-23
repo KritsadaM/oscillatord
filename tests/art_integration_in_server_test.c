@@ -24,6 +24,7 @@
 #include "config.h"
 #include "log.h"
 #include "utils.h"
+#include "../common/mRO50_ioctl.h"
 
 #define READ 0
 #define WRITE 1
@@ -71,8 +72,20 @@ static bool test_ocp_directory(char * ocp_path, struct devices_path *devices_pat
         /* MRO50 TEST: Perform R/W operations using ioctls
          * Also read factory coarse which needs to be written in EEPROM
          */
-        } else if (strncmp(entry->d_name, "mro50", 6) == 0) {
+        //} else if (strncmp(entry->d_name, "mro50", 6) == 0) {
+        } else if (strncmp(entry->d_name, "ttyMAC", 6) == 0) {
             log_info("mro50 device detected");
+            int fd = open("/dev/mro50.0", O_RDWR);
+            if (fd < 0) {
+                log_error("Could not open mRo50 device\n");
+            }
+
+            /* Activate serial in order to use mro50-serial device */
+            uint32_t serial_activate = 1;
+            int ret = ioctl(fd, MRO50_BOARD_CONFIG_WRITE, &serial_activate);
+            if (ret != 0) {
+                log_error("Could not activate mro50 serial");
+            }
             find_dev_path(ocp_path, entry, devices_path->mro_path);
             int mro50 = open(devices_path->mro_path, O_RDWR);
             if (mro50 > 0) {
